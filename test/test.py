@@ -1490,6 +1490,7 @@ class PerRequestTestCase(unittest.TestCase):
                         Directory(DOCUMENT_ROOT,
                                   PythonInterpPerDirectory('On'),
                                   SetHandler("mod_python"),
+                                  PythonFixupHandler("tests::interpreter"),
                                   PythonHandler("tests::interpreter"),
                                   PythonDebug("On")),
                         )
@@ -1511,6 +1512,10 @@ class PerRequestTestCase(unittest.TestCase):
             self.fail(`rsp`)
 
         rsp = self.vhost_get("test_interpreter_per_directory", '/subdir/').upper()
+        if (rsp != interpreter_name+'SUBDIR/'):
+            self.fail(`rsp`)
+
+        rsp = self.vhost_get("test_interpreter_per_directory", '/subdir').upper()
         if (rsp != interpreter_name+'SUBDIR/'):
             self.fail(`rsp`)
 
