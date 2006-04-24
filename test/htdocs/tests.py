@@ -1084,6 +1084,8 @@ def files_directive(req):
     req.write(str(req.hlist.directory))
     return apache.OK
 
+none_handler = None
+
 def test_sys_argv(req):
     import sys
     req.write(repr(sys.argv))
