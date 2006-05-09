@@ -446,8 +446,9 @@ class CallBack:
                 filter.req.ssi_globals = {}
 
             filter.req.ssi_globals["filter"] = filter
+            filter.req.ssi_globals["__file__"] = filter.req.filename
 
-            code = code.rstrip()
+            code = code.replace('\r\n', '\n').rstrip()
 
             if tag == 'eval':
                 result = eval(code, filter.req.ssi_globals)
