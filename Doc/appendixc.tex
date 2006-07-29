@@ -343,6 +343,24 @@
     \item
       (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-173]{MODPYTHON-173})
       Fixed DbmSession to create db file with mode 0640.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-172]{MODPYTHON-172})
+      Fixed three memory leaks that were found in _apachemodule.parse_qsl, req.readlines
+      and util.cfgtree_walk.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-179]{MODPYTHON-179})
+      Fixed the behaviour of req.readlines() when a size hint was provided. Previously,
+      it would always return a single line when a size hint was provided.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-175]{MODPYTHON-175})
+      Fixed problem whereby a main PSP page and an error page triggered from
+      that page both accessing the session object would cause a deadlock.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-176]{MODPYTHON-176})
+      Fixed issue whereby PSP code would unlock session object which it had
+      inherited from the caller meaning caller could no longer use it safely.
+      PSP code will now only unlock session if it created it in the first
+      place.
   \end{itemize}
 
 \chapter{Changes from Version (3.2.7)\label{app-changes-from-3.2.7}}
