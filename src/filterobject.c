@@ -202,6 +202,7 @@ static PyObject *_filter_read(filterobject *self, PyObject *args, int readline)
     }
 
     bufsize = len < 0 ? HUGE_STRING_LEN : len;
+    /* PYTHON 2.5: 'PyString_FromStringAndSize' uses Py_ssize_t for input parameters */ 
     result = PyString_FromStringAndSize(NULL, bufsize);
 
     /* possibly no more memory */
@@ -257,6 +258,7 @@ static PyObject *_filter_read(filterobject *self, PyObject *args, int readline)
         /* time to grow destination string? */
         if (newline == 0 && len < 0 && bytes_read == bufsize) {
 
+            /* PYTHON 2.5: '_PyString_Resize' uses Py_ssize_t for input parameters */
             _PyString_Resize(&result, bufsize + HUGE_STRING_LEN);
             buffer = PyString_AS_STRING((PyStringObject *) result);
             buffer += bytes_read;
@@ -296,6 +298,7 @@ static PyObject *_filter_read(filterobject *self, PyObject *args, int readline)
 
     /* resize if necessary */
     if (bytes_read < len || len < 0) 
+        /* PYTHON 2.5: '_PyString_Resize' uses Py_ssize_t for input parameters */
         if(_PyString_Resize(&result, bytes_read))
             return NULL;
 
@@ -352,7 +355,8 @@ static PyObject *filter_write(filterobject *self, PyObject *args)
         PyErr_SetString(PyExc_ValueError, "I/O operation on closed filter");
         return NULL;
     }
-
+    
+    /* PYTHON 2.5:  'PyString_Size' uses Py_ssize_t for return values (may need overflow check) */
     len = PyString_Size(s);
 
     if (len) {
