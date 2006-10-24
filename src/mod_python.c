@@ -2435,8 +2435,14 @@ static const char *directive_PythonHandlerModule(cmd_parms *cmd, void *mconfig,
      * This handler explodes into all other handlers, but their absense will be
      * silently ignored.
      */
+
+    /*
+     * XXX Not used at present. See problems noted against connection
+     * handler below.
+     *
     py_config *srv_conf = ap_get_module_config(cmd->server->module_config,
                                                &python_module);
+     */
 
     python_directive_handler(cmd, mconfig, "PythonPostReadRequestHandler", val, SILENT);
     python_directive_handler(cmd, mconfig, "PythonTransHandler", val, SILENT);
@@ -2675,7 +2681,6 @@ static void PythonChildInitHandler(apr_pool_t *p, server_rec *s)
                 interpreterdata *idata;
                 const char *interp_name = elts[i].key;
                 const char *module_name = elts[i].val;
-                const char *ppath;
 
                 /* get interpreter */
                 idata = get_interpreter(interp_name);

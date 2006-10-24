@@ -475,7 +475,6 @@ static PyObject *req_allow_methods(requestobject *self, PyObject *args)
 static PyObject * req_is_https(requestobject *self)
 {
     int is_https;
-    PyObject *result;
 
     if (!optfn_is_https)
         optfn_is_https = APR_RETRIEVE_OPTIONAL_FN(ssl_is_https);
@@ -494,7 +493,6 @@ static PyObject * req_is_https(requestobject *self)
 
 static PyObject * req_ssl_var_lookup(requestobject *self, PyObject *args)
 {
-    PyObject *result;
     char *var_name;
 
     if (! PyArg_ParseTuple(args, "s", &var_name))
@@ -598,7 +596,6 @@ static PyObject *req_auth_type(requestobject *self)
 
 static PyObject *req_construct_url(requestobject *self, PyObject *args)
 {
-    PyObject *result;
     char *uri;
 
     if (! PyArg_ParseTuple(args, "s", &uri))
