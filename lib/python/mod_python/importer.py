@@ -172,14 +172,14 @@ def import_module(module_name, autoreload=None, log=None, path=None):
             file = os.path.join(directory, module_name)
 
     if file is None:
-	# If not an explicit file reference, it is a
-	# module name. Determine the list of directories
-	# that need to be searched for a module code
-	# file. These directories will be, the directory
-	# of the parent if also imported using this
-	# importer and any specified search path. When
-	# enabled, the handler root directory will also
-	# be searched.
+        # If not an explicit file reference, it is a
+        # module name. Determine the list of directories
+        # that need to be searched for a module code
+        # file. These directories will be, the directory
+        # of the parent if also imported using this
+        # importer and any specified search path. When
+        # enabled, the handler root directory will also
+        # be searched.
 
         search_path = []
 
@@ -847,12 +847,12 @@ class _ModuleImporter:
         if context is None:
             return None
 
-	# Determine the list of directories that need to
-	# be searched for a module code file. These
-	# directories will be, the directory of the
-	# parent and any specified search path. When
-	# enabled, the handler root directory will also
-	# be searched.
+        # Determine the list of directories that need to
+        # be searched for a module code file. These
+        # directories will be, the directory of the
+        # parent and any specified search path. When
+        # enabled, the handler root directory will also
+        # be searched.
 
         search_path = []
 
@@ -1252,6 +1252,23 @@ def HandlerDispatch(self, req):
     config = req.get_config()
 
     try:
+        (aborted, hlist) = False, req.hlist
+
+        # The actual handler root is the directory
+        # associated with the handler first in the
+        # chain. This may be a handler which was called
+        # in an earlier phase if the req.add_handler()
+        # method was used. The directory for those that
+        # follow the first may have been overridden by
+        # directory supplied to the req.add_handler()
+        # method.
+
+        root = hlist.directory
+        parent = hlist.parent
+        while parent is not None:
+            root = parent.directory
+            parent = parent.parent
+
         # Iterate over the handlers defined for the
         # current phase and execute each in turn
         # until the last is reached or prematurely
@@ -1445,3 +1462,122 @@ def ImportDispatch(self, name):
 
 _callback.ImportDispatch = new.instancemethod(
         ImportDispatch, _callback, apache.CallBack)
+
+def ReportError(self, etype, evalue, etb, conn=None, req=None, filter=None,
+                phase="N/A", hname="N/A", debug=0):
+
+    try:
+        try:
+
+            if str(etype) == "exceptions.IOError" \
+               and str(evalue)[:5] == "Write":
+
+                # If this is an I/O error while writing to
+                # client, it is probably better not to try to
+                # write to the cleint even if debug is on.
+
+                # XXX Note that a failure to write back data in
+                # a response should be indicated by a special
+                # exception type which is caught here and not a
+                # generic I/O error as there could be false
+                # positives. See MODPYTHON-92.
+
+                debug = 0
+
+            # Determine which log function we are going
+            # to use to output any messages.
+
+            if filter and not req:
+                req = filter.req
+
+            if req:
+                log_error = req.log_error
+            elif conn:
+                log_error = conn.log_error
+            else:
+                log_error = apache.main_server.log_error
+
+            # Always log the details of any exception.
+
+            pid = os.getpid()
+            iname = apache.interpreter
+            flags = apache.APLOG_NOERRNO|apache.APLOG_ERR
+
+            text = "mod_python (pid=%d, interpreter=%s, " % (pid, `iname`)
+            text = text + "phase=%s, handler=%s)" % (`phase`, `hname`)
+            text = text + ": Application error"
+
+            log_error(text, flags)
+
+            if req:
+                location = None
+                directory = None
+
+                context = req.hlist
+
+                if context:
+                    while context.parent != None:
+                        context = context.parent
+
+                    location = context.location
+                    directory = context.directory
+
+                log_error('URI: %s' % `req.uri`, flags)
+                log_error('Location: %s' % `location`, flags)
+                log_error('Directory: %s' % `directory`, flags)
+                log_error('Filename: %s' % `req.filename`, flags)
+                log_error('PathInfo: %s' % `req.path_info`, flags)
+
+            tb = traceback.format_exception(etype, evalue, etb)
+
+            for line in tb:
+                log_error(line[:-1], flags)
+
+            if not debug or not req:
+                return apache.HTTP_INTERNAL_SERVER_ERROR
+            else:
+                req.status = apache.HTTP_INTERNAL_SERVER_ERROR
+                req.content_type = 'text/html'
+
+                text = '\n<pre>\nMOD_PYTHON ERROR\n\n'
+                text = text + 'PID: %s\n' % pid
+                text = text + 'Interpreter: %s\n' % `iname`
+                text = text + 'Phase: %s\n' % `phase`
+
+                if req:
+                    text = text + '\n'
+                    text = text + 'URI: %s\n' % `req.uri`
+                    text = text + 'Location: %s\n' % `location`
+                    text = text + 'Directory: %s\n' % `directory`
+                    text = text + 'Filename: %s\n' % `req.filename`
+                    text = text + 'PathInfo: %s\n' % `req.path_info`
+
+                text = text + '\n'
+                text = text + 'Handler: %s\n' % cgi.escape(repr(hname))
+                text = text + '\n'
+
+                for line in tb:
+                    text = text + cgi.escape(line) + '\n'
+                text = text + "</pre>\n"
+
+                if filter:
+                    filter.write(text)
+                    filter.flush()
+                else:
+                    req.write(text)
+
+                return apache.DONE
+
+        except:
+            # When all else fails try and dump traceback
+            # directory standard error and flush it.
+
+            traceback.print_exc()
+            sys.stderr.flush()
+
+    finally:
+        etb = None
+
+_callback.ReportError = new.instancemethod(
+    ReportError, _callback, apache.CallBack)
+
