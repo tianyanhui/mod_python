@@ -1903,7 +1903,7 @@ class PerRequestTestCase(unittest.TestCase):
                         Directory(DOCUMENT_ROOT,
                                   SetHandler("mod_python"),
                                   PythonHandler("mod_python.psp"),
-                                  PythonOption('session_directory "%s"' % TMP_DIR),
+                                  PythonOption('mod_python.session.session_directory "%s"' % TMP_DIR),
                                   PythonDebug("On")))
         return str(c)
 
@@ -2008,8 +2008,8 @@ class PerRequestTestCase(unittest.TestCase):
                         Directory(DOCUMENT_ROOT,
                                   SetHandler("mod_python"),
                                   PythonHandler("tests::Session_Session"),
-                                  PythonOption('session_directory "%s"' % TMP_DIR),
-                                  PythonOption('ApplicationPath "/path"'),
+                                  PythonOption('mod_python.session.database_directory "%s"' % TMP_DIR),
+                                  PythonOption('mod_python.session.application_path "/path"'),
                                   PythonOption('mod_python.session.application_domain "test_Session_Session"'),
                                   PythonDebug("On")))
         return str(c)
@@ -2061,7 +2061,7 @@ class PerRequestTestCase(unittest.TestCase):
                         Directory(DOCUMENT_ROOT,
                                   SetHandler("mod_python"),
                                   PythonHandler("tests::Session_Session"),
-                                  PythonOption('session_directory "%s"' % TMP_DIR),
+                                  PythonOption('mod_python.session.database_directory "%s"' % TMP_DIR),
                                   PythonDebug("On")))
         return str(c)
 
