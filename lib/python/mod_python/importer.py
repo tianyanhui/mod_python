@@ -928,7 +928,7 @@ _status_values = {
     "typehandler":              [ apache.DECLINED ],
     "fixuphandler":             [ apache.DECLINED, apache.OK ],
     "loghandler":               [ apache.DECLINED, apache.OK ],
-    "handler":                  [ apache.OK ],
+    "handler":                  [ apache.DECLINED, apache.OK ],
 }
 
 def _execute_target(config, req, object, arg):
