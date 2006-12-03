@@ -362,8 +362,290 @@ objects. For a more in-depth look at Apache internals, see the
 
   \begin{verbatim}
     from mod_python import apache
-    mymodule = apache.import_module('mymodule', log=1)
+    module = apache.import_module('module_name')
   \end{verbatim}
+
+  The \code{apache.import_module()} function is not just a wrapper for the
+  standard Python module import mechanism. The purpose of the function and
+  the mod_python module importer in general, is to provide a means of being
+  able to import modules based on their exact location, with modules being
+  distinguished based on their location rather than just the name of the
+  module. Distinguishing modules in this way, rather than by name alone,
+  means that the same module name can be used for handlers and other code
+  in multiple directories and they will not interfere with each other.
+
+  A secondary feature of the module importer is to implement a means of
+  having modules automatically reloaded when the corresponding code file
+  has been changed on disk. Having modules be able to be reloaded in this
+  way means that it is possible to change the code for a web application
+  without having to restart the whole Apache web server. Although this was
+  always the intent of the module importer, prior to mod_python 3.3, its
+  effectiveness was limited. With mod_python 3.3 however, the module
+  reloading feature is much more robust and will correctly reload parent
+  modules even when it was only a child module what was changed.
+
+  When the \code{apache.import_module()} function is called with just the
+  name of the module, as opposed to a path to the actual code file for the
+  module, a search has to be made for the module. The first set of
+  directories that will be checked are those specified by the \var{path}
+  argument if supplied.
+  
+  Where the function is called from another module which had previously
+  been imported by the mod_python importer, the next directory which will
+  be checked will be the same directory as the parent module is located.
+  Where that same parent module contains a global data variable called
+  \code{__mp_path__} containing a list of directories, those directories
+  will also be searched.
+
+  Finally, the mod_python module importer will search directories
+  specified by the \code{PythonOption} called \code{mod_python.importer.path}.
+
+  For example:
+
+  \begin{verbatim}
+    PythonOption mod_python.importer.path "['/some/path']"
+  \end{verbatim}
+
+  The argument to the option must be in the form of a Python list. The
+  enclosing quotes are to ensure that Apache interprets the argument as a
+  single value. The list must be self contained and cannot reference any
+  prior value of the option. The list MUST NOT reference \code{sys.path}
+  nor should any directory which also appears in \code{sys.path} be
+  listed in the mod_python module importer search path.
+
+  When searching for the module, a check is made for any code file with the
+  name specified and having a '.py' extension. Because only modules
+  implemented as a single file will be found, packages will not be found
+  nor modules contained within a package.
+
+  In any case where a module cannot be found, control is handed off to the
+  standard Python module importer which will attempt to find the module or
+  package by searching \code{sys.path}.
+
+  Note that only modules found by the mod_python module importer are
+  candidates for automatic module reloading. That is, where the mod_python
+  module importer could not find a module and handed the search off to the
+  standard Python module importer, those modules or packages will not be
+  able to be reloaded.
+
+  Although true Python packages are not candidates for reloading and must
+  be located in a directory listed in \code{sys.path}, another form of
+  packaging up modules such that they can be maintained within their own
+  namespace is supported. When this mechanism is used, these modules will
+  be candidates for reloading when found by the mod_python module importer.
+
+  In this scheme for maintaining a psuedo package, individual modules are
+  still placed into a directory, but there cannot be a \code{__init__.py}
+  file in the directory. If such a file does exist, it will simply be
+  ignored. To import a module from this pseudo package, rather than using
+  a '.' to distinguish a sub module from the parent, a '/' is used instead.
+
+  For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+    module = apache.import_module('dirname/module_name')
+  \end{verbatim}
+
+  As a true Python package is not being used, if a module in the directory
+  needs to refer to another module in the same directory, it should use
+  just its name, it should not use any form of dotted path name via the
+  root of the package as with true Python packages. Modules in
+  subdirectories can be imported by using a '/' separated path where the
+  first part of the path is the name of the subdirectory.
+
+  As a new feature in mod_python 3.3, when using the standard Python
+  'import' statement to import a module, if the import is being done from a
+  module which was previously imported by the mod_python module importer,
+  it is equivalent to having called \code{apache.import_module()} directly.
+
+  For example:
+
+  \begin{verbatim}
+    import name
+  \end{verbatim}
+
+  is equivalent to:
+
+  \begin{verbatim}
+    from mod_python import apache
+    name = apache.import_module('name')
+  \end{verbatim}
+
+  It is also possible to use constructs such as:
+
+  \begin{verbatim}
+    import name as module
+  \end{verbatim}
+
+  and:
+
+  \begin{verbatim}
+    from name import value
+  \end{verbatim}
+
+  Although the 'import' statement is used, that it maps through to the
+  \code{apache.import_module()} function ensures that parent/child
+  relationships are maintained correctly and reloading of a parent will
+  still work when only the child has been changed. It also ensures that one
+  will not end up with modules which were separately imported by the
+  mod_python module importer and the standard Python module importer.
+
+  With the reimplementation of the module importer in mod_python 3.3, the
+  \var{module_name} argument may also now be an absolute path name of an
+  actual Python module contained in a single file. On Windows, a drive
+  letter can be supplied if necessary. For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+    name = apache.import_module('/some/path/name.py')
+  \end{verbatim}
+
+  or:
+
+  \begin{verbatim}
+    from mod_python import apache
+    import os
+    here = os.path.dirname(__file__)
+    path = os.path.join(here, 'module.py')
+    module = apache.import_module(path)
+  \end{verbatim}
+
+  Where the file has an extension, that extension must be supplied. Although
+  it is recommended that code files still make use of the '.py' extension,
+  it is not actually a requirement and an alternate extension can be used.
+  For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+    import os
+    here = os.path.dirname(__file__)
+    path = os.path.join(here, 'servlet.mps')
+    servlet = apache.import_module(path)
+  \end{verbatim}
+
+  To avoid the need to use hard coded absolute path names to modules, a few
+  shortcuts are provided. The first of these allow for the use of relative
+  path names with respect to the directory the module performing the
+  import is located within.
+
+  For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+
+    parent = apache.import_module('../module.py')
+    subdir = apache.import_module('./subdir/module.py')
+  \end{verbatim}
+
+  Forward slashes must always be used for the prefixes './' and '../', even
+  on Windows hosts where native pathname use a backslash. This convention
+  of using forward slashes is used as that is what Apache normalizes all
+  paths to internally. If you are using Windows and have been using
+  backward slashes with \code{Directory} directives etc, you are using
+  Apache contrary to what is the accepted norm.
+
+  A further shortcut allows paths to be declared relative to what is
+  regarded as the handler root directory. The handler root directory is the
+  directory context in which the active \code{Python*Handler} directive was
+  specified. If the directive was specified within a \code{Location} or
+  \code{VirtualHost} directive, or at global server scope, the handler root
+  will be the relevant document root for the server.
+  
+  To express path relatives to the handler root, the '~/' prefix should be
+  used. A forward slash must again always be used.
+
+  For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+
+    parent = apache.import_module('~/../module.py')
+    subdir = apache.import_module('~/subdir/module.py')
+  \end{verbatim}
+
+  In all cases where a path to the actual code file for a module is given,
+  the \var{path} argument is redundant as there is no need to search
+  through a list of directories to find the module. In these situations,
+  the \var{path} is instead taken to be a list of directories to use as the
+  initial value of the \code{__mp_path__} variable contained in the
+  imported modules instead of an empty path.
+
+  This feature can be used to attach a more restrictive search path to a
+  set of modules rather than using the \code{PythonOption} to set a global
+  search path. To do this, the modules should always be imported through a
+  specific parent module. That module should then always import submodules
+  using paths and supply \code{__mp_path__} as the \var{path} argument to
+  subsequent calls to \code{apache.import_module()} within that module. For
+  example:
+
+  \begin{verbatim}
+    from mod_python import apache
+
+    module1 = apache.import_module('./module1.py', path=__mp_path__)
+    module2 = apache.import_module('./module2.py', path=__mp_path__)
+  \end{verbatim}
+
+  with the module being imported as:
+
+  \begin{verbatim}
+    from mod_python import apache
+
+    parent = apache.import_module('~/modules/parent.py', path=['/some/path'])
+  \end{verbatim}
+
+  The parent module may if required extend the value of \code{__mp_path__}
+  prior to using it. Any such directories will be added to those inherited
+  via the \var{path} argument. For example:
+
+  \begin{verbatim}
+    from mod_python import apache
+    import os
+
+    here = os.path.dirname(__file__)
+    subdir = os.path.join(here, 'subdir')
+    __mp_path__.append(subdir)
+
+    module1 = apache.import_module('./module1.py', path=__mp_path__)
+    module2 = apache.import_module('./module2.py', path=__mp_path__)
+  \end{verbatim}
+
+  In all cases where a search path is being specified which is specific
+  to the mod_python module importer, whether it be specified using the
+  \code{PythonOption} called \code{mod_python.importer.path}, using the
+  \var{path} argument to the \code{apache.import_module()} function or
+  in the \code{__mp_path__} attribute, the prefix '~/' can be used in
+  a path and that path will be taken as being relative to handler root.
+  For example:
+
+  \begin{verbatim}
+    PythonOption mod_python.importer.path "['~/modules']"
+  \end{verbatim}
+
+  If wishing to refer to the handler root directory itself, then '~' can be
+  used and the trailing slash left off. For example:
+
+  \begin{verbatim}
+    PythonOption mod_python.importer.path "['~']"
+  \end{verbatim}
+
+  Note that with the new module importer, as directories associated with
+  \code{Python*Handler} directives are no longer being added automatically
+  to \code{sys.path} and they are instead used directly by the module
+  importer only when required, some existing code which expected to be able
+  to import modules in the handler root directory from a module in a
+  subdirectory may no longer work. In these situations it will be necessary
+  to set the mod_python module importer path to include '~' or list '~' in
+  the \code{__mp_path__} attribute of the module performing the import.
+
+  This trick of listing '~' in the module importer path will not however
+  help in the case where Python packages were previously being placed into
+  the handler root directory. In this case, the Python package should
+  either be moved out of the document tree and the directory where it is
+  located listed against the \code{PythonPath} directive, or the package
+  converted into the psuedo packages that mod_python supports and change
+  the module imports used to access the package.
+
 \end{funcdesc}
 
 \begin{funcdesc}{allow_methods}{\optional{*args}}
