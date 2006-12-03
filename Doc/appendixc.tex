@@ -138,6 +138,36 @@
       (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-179]{MODPYTHON-179})
       Fixed the behaviour of req.readlines() when a size hint was provided. Previously,
       it would always return a single line when a size hint was provided.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-164]{MODPYTHON-164})
+      The \code{req.add_handler()}, \code{req.register_input_filter()} and
+      \code{req.register_output_filter()} methods can now take a direct
+      reference to a callable object as well a string which refers to a
+      module or module::function combination by name.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-165]{MODPYTHON-165})
+      Exported functions from mod_python module to be used in other third
+      party modules for Apache. The purpose of these functions is to allow
+      those other modules to access the mechanics of how mod_python creates
+      interpreters, thereby allowing other modules to also embed Python
+      and for there not to be a conflict with mod_python.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-170]{MODPYTHON-170})
+      Added \code{req._request_rec}, \code{server._server_rec} and
+      \code{conn._conn_rec} semi private members for getting accessing to
+      underlying Apache struct as a Python CObject. These can be used for
+      use in implementing SWIG bindings for lower level APIs of Apache.
+      These members should be regarded as experimental and there are no
+      guarantees that they will remain present in this specific form in the
+      future.
+    \item
+      (\citetitle[http://issues.apache.org/jira/browse/MODPYTHON-193]{MODPYTHON-193})
+      Added new attribute available as \code{req.hlist.location}. For a
+      handler executed directly as the result of a handler directive
+      within a \code{Location} directive, this will be set to the value
+      of the \code{Location} directive. If \code{LocationMatch}, or
+      wildcards or regular expressions are used with \code{Location},
+      the value will be the matched value in the URL and not the pattern.
   \end{itemize}
 
   Improvements
